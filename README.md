@@ -63,3 +63,50 @@ python model_training.py
 - Trains a Random Forest Classifier.
 - Evaluates the model's performance.
 - Saves the trained model to `model.pkl`.
+
+### Step 3: Running the App
+Launch the app to interact with the model.
+```
+streamlit run app.py
+```
+
+### Step 4: Interacting with the App
+
+- Input Your Data: Provide your daily minutes spent, posts per day, and select your social media platform.
+- View Prediction: See whether the model predicts High Engagement or Low Engagement.
+- Generate Explanations:
+    - Select your desired engagement level.
+    - Click on "Generate Counterfactual Explanations".
+    - Review the counterfactual examples and detailed explanations.
+
+## Project Structure
+```
+social-media-engagement-predictor/
+│
+├── data_preprocessing.py      # Script for data loading and preprocessing
+├── model_training.py          # Script for training the machine learning model
+├── streamlit_app.py           # Streamlit application script
+├── requirements.txt           # Python package dependencies
+├── social_media_usage.csv     # Original dataset (ensure this file is present)
+└── README.md                  # Project documentation
+```
+
+## Dependencies
+The project requires the following Python packages:
+
+- **pandas==1.5.3**
+- **numpy==1.24.3**
+- **scikit-learn==1.2.2**
+- **joblib==1.2.0**
+- **dice-ml==0.11**
+- **streamlit==1.24.1**
+- **seaborn==0.13.2**
+- **matplotlib==3.9.2**
+
+## Acknowledgments
+
+
+- Kaggle Dataset: Thanks to [Bhadra Mohit](https://www.kaggle.com/bhadramohit) for providing the [Social Media Usage Dataset](https://www.kaggle.com/datasets/bhadramohit/social-media-usage-datasetapplications).
+- DiCE Library: [GitHub Repository](https://github.com/interpretml/DiCE)
+- Streamlit: [Official Documentation](https://docs.streamlit.io/)
+- Scikit-learn: [Machine Learning in Python](https://scikit-learn.org/stable/)
