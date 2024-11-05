@@ -43,7 +43,9 @@ st.title('Social Media Engagement Predictor')
 # Display feature importances
 st.subheader('Feature Importances')
 fig, ax = plt.subplots()
-sns.barplot(x=feat_importances, y=feat_importances.index, ax=ax)
+sns.barplot(x=feat_importances, y=feat_importances.index, ax=ax, color='#FF4B4B')
+plt.ylabel("Feature Names")
+plt.xlabel("Feature Importance")
 st.pyplot(fig)
 
 st.header('Input Your Social Media Usage')
