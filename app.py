@@ -113,7 +113,7 @@ def generate_explanation(original_input, cf_instance):
     else:
         explanation += f"- **Keep your posts per day** at {original_posts}.\n"
 
-    # Compare 'App' (if 'App' is allowed to vary)
+    # Compare 'App'
     if cf_app != original_app:
         explanation += f"- **Change your social media platform** from {original_app} to {cf_app}.\n"
     else:
