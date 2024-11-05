@@ -1,11 +1,10 @@
-# streamlit_app.py
-
 import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
 import dice_ml
 from dice_ml import Dice
+
 
 # Load the trained model and label encoder
 model = joblib.load('model.pkl')
@@ -15,7 +14,7 @@ le_app = joblib.load('le_app.pkl')
 data = pd.read_csv('processed_data.csv')
 
 # Define continuous and categorical features
-continuous_features = ['Daily_Minutes_Spent', 'Posts_Per_Day']
+continuous_features = ['Daily_Minutes_Spent', 'Posts_Per_Day', 'Likes_Per_Day', 'Follows_Per_Day']
 categorical_features = ['App']
 outcome_name = 'High_Engagement'
 
@@ -37,10 +36,12 @@ st.title('Social Media Engagement Predictor')
 st.header('Input Your Social Media Usage')
 
 # User Inputs
-daily_minutes = st.slider('Daily Minutes Spent', min_value=5, max_value=500, value=60)
-posts_per_day = st.slider('Posts Per Day', min_value=0, max_value=20, value=1)
 app_options = le_app.classes_
 app = st.selectbox('Social Media Platform', app_options)
+daily_minutes = st.slider('Daily Minutes Spent', min_value=5, max_value=500, value=60)
+posts_per_day = st.slider('Posts Per Day', min_value=0, max_value=20, value=1)
+likes_per_day = st.slider('Likes Per Day', min_value=0, max_value=1000, value=50)
+follows_per_day = st.slider('Follows Per Day', min_value=0, max_value=1000, value=10)
 
 # Encode 'App' input
 app_encoded = le_app.transform([app])[0]
@@ -49,6 +50,8 @@ app_encoded = le_app.transform([app])[0]
 input_data = pd.DataFrame({
     'Daily_Minutes_Spent': [daily_minutes],
     'Posts_Per_Day': [posts_per_day],
+    'Likes_Per_Day': [likes_per_day],
+    'Follows_Per_Day': [follows_per_day],
     'App': [app_encoded]
 })
 
@@ -62,22 +65,99 @@ st.write(f'**Predicted Engagement Level:** {prediction_label}')
 desired_outcome = st.selectbox('Desired Engagement Level', ['High Engagement', 'Low Engagement'])
 desired_class = 1 if desired_outcome == 'High Engagement' else 0
 
+# Function to generate explanations
+def generate_explanation(original_input, cf_instance):
+    # Extract original values
+    original_minutes = original_input['Daily_Minutes_Spent']
+    original_posts = original_input['Posts_Per_Day']
+    original_likes = original_input['Likes_Per_Day']
+    original_follows = original_input['Follows_Per_Day']
+    original_app = le_app.inverse_transform([original_input['App']])[0]
+
+    # Extract counterfactual values
+    cf_minutes = cf_instance['Daily_Minutes_Spent']
+    cf_posts = cf_instance['Posts_Per_Day']
+    cf_likes = cf_instance['Likes_Per_Day']
+    cf_follows = cf_instance['Follows_Per_Day']
+    cf_app = cf_instance['App']
+
+    # Initialize the explanation
+    explanation = ""
+
+    # Compare 'Daily_Minutes_Spent'
+    if cf_minutes != original_minutes:
+        if cf_minutes > original_minutes:
+            explanation += f"- **Increase your daily time spent** from {original_minutes} minutes to {cf_minutes} minutes.\n"
+        else:
+            explanation += f"- **Decrease your daily time spent** from {original_minutes} minutes to {cf_minutes} minutes.\n"
+    else:
+        explanation += f"- **Keep your daily time spent** at {original_minutes} minutes.\n"
+
+    # Compare 'Posts_Per_Day'
+    if cf_posts != original_posts:
+        if cf_posts > original_posts:
+            explanation += f"- **Increase your posts per day** from {original_posts} to {cf_posts}.\n"
+        else:
+            explanation += f"- **Decrease your posts per day** from {original_posts} to {cf_posts}.\n"
+    else:
+        explanation += f"- **Keep your posts per day** at {original_posts}.\n"
+
+    # Compare 'Likes_Per_Day'
+    if cf_likes != original_likes:
+        if cf_likes > original_likes:
+            explanation += f"- **Increase your likes per day** from {original_likes} to {cf_likes}.\n"
+        else:
+            explanation += f"- **Decrease your likes per day** from {original_likes} to {cf_likes}.\n"
+    else:    
+        explanation += f"- **Keep your likes per day** at {original_likes}.\n"
+
+    # Compare 'Follows_Per_Day'
+    if cf_follows != original_follows:
+        if cf_follows > original_follows:
+            explanation += f"- **Increase your follows per day** from {original_follows} to {cf_follows}.\n"
+        else:
+            explanation += f"- **Decrease your follows per day** from {original_follows} to {cf_follows}.\n"
+    else:
+        explanation += f"- **Keep your follows per day** at {original_follows}.\n"
+
+    # Compare 'App' (if 'App' is allowed to vary)
+    if cf_app != original_app:
+        explanation += f"- **Change your social media platform** from {original_app} to {cf_app}.\n"
+    else:
+        explanation += f"- **Continue using** {original_app}.\n"
+
+    # Add the predicted outcome
+    desired_engagement = 'High Engagement' if cf_instance['High_Engagement'] == 1 else 'Low Engagement'
+    explanation += f"\nBy making these changes, you could achieve **{desired_engagement}**."
+
+    return explanation
+
 # Generate Counterfactual Explanations
 if st.button('Generate Counterfactual Explanations'):
     with st.spinner('Generating explanations...'):
         exp = dice_exp.generate_counterfactuals(
             input_data,
-            total_CFs=3,
+            total_CFs=5,
             desired_class=desired_class,
-            features_to_vary=['Daily_Minutes_Spent', 'Posts_Per_Day']
+            features_to_vary=['Daily_Minutes_Spent', 'Posts_Per_Day', 'Likes_Per_Day', 'Follows_Per_Day', 'App']
         )
     st.success('Counterfactual explanations generated!')
 
-    # Display the explanations
+    # Retrieve the counterfactual examples
     cf_df = exp.cf_examples_list[0].final_cfs_df
 
     # Decode 'App' for display
     cf_df['App'] = le_app.inverse_transform(cf_df['App'].astype(int))
 
     st.header('Counterfactual Explanations')
+
+    # Display the counterfactual table
+    st.subheader('Counterfactual Examples')
     st.write(cf_df)
+
+    # Explain each counterfactual instance
+    st.subheader('Detailed Explanations')
+    for index, row in cf_df.iterrows():
+        st.markdown(f"**Option {index + 1}:**")
+        explanation = generate_explanation(input_data.iloc[0], row)
+        st.write(explanation)
