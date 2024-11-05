@@ -1,7 +1,7 @@
 /.venv
 /archive
 /archive.zip
-/covid_impact_on_work_new.csv
 /counterfactual
-/le_app.pkl
-/model.pkl
+le_app.pkl
+model.pkl
+processed_data.csv

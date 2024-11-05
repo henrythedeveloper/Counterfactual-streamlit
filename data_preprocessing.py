@@ -17,9 +17,28 @@ print(data.isnull().sum())
 print("\nData types of each column:")
 print(data.dtypes)
 
+# Mean values for 'Daily_Minutes_Spent' and 'Posts_Per_Day'
+minutes_mean = data['Daily_Minutes_Spent'].mean()
+posts_mean = data['Posts_Per_Day'].mean()
+
+# Engagement Ratio Thresholds for 'Likes_Per_Day' and 'Follows_Per_Day'
+# Calculating the 75th percentile
+likes_threshold = data['Likes_Per_Day'] / data['Posts_Per_Day'].quantile(0.75)
+follows_threshold = data['Follows_Per_Day'] / data['Posts_Per_Day'].quantile(0.75)
+
+data['High_Engagement'] =np.where(
+    (data['Daily_Minutes_Spent'] >= minutes_mean) & 
+    (data['Posts_Per_Day'] >= posts_mean) &
+    ((data['Likes_Per_Day'] / data['Posts_Per_Day']) >= likes_threshold) &
+    ((data['Follows_Per_Day'] / data['Posts_Per_Day']) >= follows_threshold),
+    1,
+    0
+)
+
 # Select features and target
 features = ['Daily_Minutes_Spent', 'Posts_Per_Day', 'App', 'Likes_Per_Day', 'Follows_Per_Day']
 target = 'High_Engagement'  # Target column
+
 
 X = data[features].copy()
 y = data[target]

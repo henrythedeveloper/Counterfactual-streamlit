@@ -4,7 +4,8 @@ import numpy as np
 import joblib
 import dice_ml
 from dice_ml import Dice
-
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Load the trained model and label encoder
 model = joblib.load('model.pkl')
@@ -30,18 +31,30 @@ model_wrapper = dice_ml.Model(model=model, backend='sklearn')
 # Initialize DiCE
 dice_exp = Dice(dice_data, model_wrapper, method='random')
 
+# Get feature importances from the model 
+importances = model.feature_importances_
+feature_names = ['Daily Minutes Spent', 'Posts Per Day', 'App', 'Likes Per Day', 'Follows Per Day']
+feat_importances = pd.Series(importances, index=feature_names)
+
+
 # Streamlit App
 st.title('Social Media Engagement Predictor')
+
+# Display feature importances
+st.subheader('Feature Importances')
+fig, ax = plt.subplots()
+sns.barplot(x=feat_importances, y=feat_importances.index, ax=ax)
+st.pyplot(fig)
 
 st.header('Input Your Social Media Usage')
 
 # User Inputs
 app_options = le_app.classes_
 app = st.selectbox('Social Media Platform', app_options)
-daily_minutes = st.slider('Daily Minutes Spent', min_value=5, max_value=500, value=60)
-posts_per_day = st.slider('Posts Per Day', min_value=0, max_value=20, value=1)
-likes_per_day = st.slider('Likes Per Day', min_value=0, max_value=1000, value=50)
-follows_per_day = st.slider('Follows Per Day', min_value=0, max_value=1000, value=10)
+daily_minutes = st.slider('Daily Minutes Spent', min_value=5, max_value=500, value=60, help='Select the number of minutes spent on social media daily')
+posts_per_day = st.slider('Posts Per Day', min_value=0, max_value=20, value=1, help='Select the number of posts made per day')
+likes_per_day = st.slider('Likes Per Day', min_value=0, max_value=1000, value=50, help='Select the number of likes received per day')
+follows_per_day = st.slider('Follows Per Day', min_value=0, max_value=1000, value=10, help='Select the number of follows received per day')
 
 # Encode 'App' input
 app_encoded = le_app.transform([app])[0]
@@ -50,9 +63,9 @@ app_encoded = le_app.transform([app])[0]
 input_data = pd.DataFrame({
     'Daily_Minutes_Spent': [daily_minutes],
     'Posts_Per_Day': [posts_per_day],
+    'App': [app_encoded],
     'Likes_Per_Day': [likes_per_day],
-    'Follows_Per_Day': [follows_per_day],
-    'App': [app_encoded]
+    'Follows_Per_Day': [follows_per_day]
 })
 
 # Predict engagement
@@ -70,15 +83,11 @@ def generate_explanation(original_input, cf_instance):
     # Extract original values
     original_minutes = original_input['Daily_Minutes_Spent']
     original_posts = original_input['Posts_Per_Day']
-    original_likes = original_input['Likes_Per_Day']
-    original_follows = original_input['Follows_Per_Day']
     original_app = le_app.inverse_transform([original_input['App']])[0]
 
     # Extract counterfactual values
     cf_minutes = cf_instance['Daily_Minutes_Spent']
     cf_posts = cf_instance['Posts_Per_Day']
-    cf_likes = cf_instance['Likes_Per_Day']
-    cf_follows = cf_instance['Follows_Per_Day']
     cf_app = cf_instance['App']
 
     # Initialize the explanation
@@ -102,24 +111,6 @@ def generate_explanation(original_input, cf_instance):
     else:
         explanation += f"- **Keep your posts per day** at {original_posts}.\n"
 
-    # Compare 'Likes_Per_Day'
-    if cf_likes != original_likes:
-        if cf_likes > original_likes:
-            explanation += f"- **Increase your likes per day** from {original_likes} to {cf_likes}.\n"
-        else:
-            explanation += f"- **Decrease your likes per day** from {original_likes} to {cf_likes}.\n"
-    else:    
-        explanation += f"- **Keep your likes per day** at {original_likes}.\n"
-
-    # Compare 'Follows_Per_Day'
-    if cf_follows != original_follows:
-        if cf_follows > original_follows:
-            explanation += f"- **Increase your follows per day** from {original_follows} to {cf_follows}.\n"
-        else:
-            explanation += f"- **Decrease your follows per day** from {original_follows} to {cf_follows}.\n"
-    else:
-        explanation += f"- **Keep your follows per day** at {original_follows}.\n"
-
     # Compare 'App' (if 'App' is allowed to vary)
     if cf_app != original_app:
         explanation += f"- **Change your social media platform** from {original_app} to {cf_app}.\n"
@@ -137,9 +128,9 @@ if st.button('Generate Counterfactual Explanations'):
     with st.spinner('Generating explanations...'):
         exp = dice_exp.generate_counterfactuals(
             input_data,
-            total_CFs=5,
+            total_CFs=3,
             desired_class=desired_class,
-            features_to_vary=['Daily_Minutes_Spent', 'Posts_Per_Day', 'Likes_Per_Day', 'Follows_Per_Day', 'App']
+            features_to_vary=['Daily_Minutes_Spent', 'Posts_Per_Day', 'Likes_Per_Day', 'Follows_Per_Day']
         )
     st.success('Counterfactual explanations generated!')
 
